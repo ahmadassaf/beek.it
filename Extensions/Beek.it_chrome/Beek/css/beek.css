@@ -1,0 +1,2 @@
+.floating_beek{display:block;position:fixed;top:10px;width:70px;height:70px;right:10px;z-index:99999999998;}
+.beek_logo{width:70px;left:5px;position:absolute;top:10px;opacity:.5;transition:.8s;cursor:pointer}
