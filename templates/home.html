@@ -63,18 +63,12 @@
                     <ul>
                     {% for doc in docs.hits %}
 			<li>
-                {% if doc._source.embedly.data.title %}
-                    <a href="{{ doc._source.url }}">
-                    {{ doc._source.embedly.data.title|truncate(90, True) }}</a>
-                {% else %}
                     <a href="{{ doc._source.url }}">
                     {{ doc._source.url|truncate(90, True) }}</a>
-                {% endif %}
                             <span class="dimmed">{{ doc._source.date|human_time }}</span>
                         </li>
                     {% endfor %}
                     </ul>
-
 		    <hr>
 
 		    <div class="row" id="q-input">
@@ -112,6 +106,8 @@
 
 			</div>
 		    </div>
+
+            <hr>
 
                 {% endif %}
 
