@@ -105,6 +105,20 @@ def filter_type_from_results(ent_type, results):
                     terms[ disam['name'] ] = disam.get('dbpedia', '')
     return terms
 
+
+@app.route("/related")
+def related():
+    url = request.args.get('url')
+    if not url:
+	return jsonify(msg='url parameter required')
+
+    es = elasticsearch.Elasticsearch()
+    result = es.search(index='beek', doc_type='page', body={'query':
+		       {'query_string': {'query': 'url:"%s"' % url}}})
+    hits = result['hits']['hits']
+    return jsonify(related=hits)
+
+
 @app.route("/")
 def home():
     q = request.args.get('q')
