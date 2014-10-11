@@ -95,3 +95,43 @@ def query_embedly(url):
         data = resp.__dict__        
         es = elasticsearch.Elasticsearch()
         es.update(index='beek', doc_type='page', id=url_to_doc_id(url), body={'doc': {'embedly': data}})
+
+def get_terms_images():
+    """ Try to fetch the depictions of terms from dbpedia and cache the
+        URL locally for faster access. """
+    r = requests.get('http://localhost:5000/terms')
+    if r.status_code >= 400:
+        raise RuntimeError('we need /terms')
+    terms = json.loads(r.text)
+
+    imagery = {'cities': {}, 'people': {}}
+
+    # for cities
+    for name, url in terms['cities'].iteritems():
+        dbpedia_live_url = '%s.json' % url.replace('dbpedia.org/resource', 'live.dbpedia.org/data')
+        r = requests.get(dbpedia_live_url)
+        if r.status_code >= 400:
+            continue
+        bag = json.loads(r.text)
+        for subject, po in bag.iteritems():
+            for predicate, o in po.iteritems():
+                if predicate == "http://xmlns.com/foaf/0.1/depiction":
+                    for doc in o:
+                        print(name, url, doc['value'])
+                        imagery['cities'][name] = doc['value']
+    # for people
+    for name, url in terms['people'].iteritems():
+        dbpedia_live_url = '%s.json' % url.replace('dbpedia.org/resource', 'live.dbpedia.org/data')
+        r = requests.get(dbpedia_live_url)
+        if r.status_code >= 400:
+            continue
+        bag = json.loads(r.text)
+        for subject, po in bag.iteritems():
+            for predicate, o in po.iteritems():
+                if predicate == "http://xmlns.com/foaf/0.1/depiction":
+                    for doc in o:
+                        print(name, url, doc['value'])
+                        imagery['people'][name] = doc['value']
+
+    es = elasticsearch.Elasticsearch()
+    es.index(index='beek', doc_type='images', id='dbpedia', body=imagery, refresh=True)

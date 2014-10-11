@@ -68,6 +68,15 @@ def terms():
 
     return jsonify({'cities':cities, 'people':people, 'categories':list(cats)})
 
+@app.route("/images")
+def images():
+    es = elasticsearch.Elasticsearch()
+    try:
+        result = es.get_source(index='beek', doc_type='images', id='dbpedia')
+    except Exception as err:
+        return jsonify(msg=str(err))
+    return jsonify(**result)
+
 
 def filter_type_from_results(ent_type, results):
     terms = dict()
@@ -136,11 +145,11 @@ def add_url():
     embedly_job = q.enqueue(query_embedly, url, depends_on=alchemy_job)
     # Count the words in the page ...
     wordcount_job = q.enqueue(count_words, url_to_doc_id(url), depends_on=embedly_job)
+    # Terms images service
+    termimages_job = q.enqueue(get_terms_images, depends_on=wordcount_job)
 
     # return jsonify(msg="ok enqueued")
     return redirect(url_for('home'))
-
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
