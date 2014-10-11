@@ -59,6 +59,10 @@ def alchemy_flow(url):
         'keywords': keywords,
     }
 
+@app.route('/')
+def root():
+    return app.send_static_file('index.html')
+
 @app.route("/api/addUrl")
 def add_url():
     url = request.args.get('url')
