@@ -73,6 +73,8 @@ def query_alchemy(url):
     else:
         keywords = []
 
+    actors_joined = [actor.replace(' ', '_') for actor in actors]
+
     es = elasticsearch.Elasticsearch()
     es.update(index='beek', doc_type='page', id=url_to_doc_id(url),
               body={'doc': {'category': category,
@@ -82,6 +84,7 @@ def query_alchemy(url):
                             'entities': entities,
                             'locations': locations,
                             'actors': actors,
+                            'actors_joined': actors_joined,
                             'terminology': terminology}}, refresh=True)
 
 def query_embedly(url):

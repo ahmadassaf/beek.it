@@ -40,6 +40,19 @@ def human_time(s):
 def root():
     return app.send_static_file('index.html')
 
+@app.route("/terms")
+def terms():
+    match_all = { "match_all" : {}}
+    return jsonify(get_field_values(match_all, 'actors_joined'))
+
+def get_field_values(query, field_name):
+    es = elasticsearch.Elasticsearch()
+    AGG = 'AGG'
+    query = {"query" : query, 'aggs': { 
+                AGG : {'terms': {"field" : field_name}} 
+            } }
+    result = es.search(index='beek', body=query, size=100)
+    return result['aggregations'].get(AGG, {}).get('buckets',{})
 
 @app.route("/")
 def home():
@@ -56,17 +69,32 @@ def home():
         es = elasticsearch.Elasticsearch()
         total = es.count(index='beek', body={'query': {'match_all': {}}}).get('count')
         result = es.search(index='beek', body={
-            "query" : { "match_all" : {}}, "sort": { "date": { "order": "desc" }}}, size=5)
+            "query" : { "match_all" : {}}}, size=5)
+
         return render_template('home.html', docs=result['hits'], total=total)
 
     es = elasticsearch.Elasticsearch()
+    query = {'query_string': {'query': '%s' % q}}
     result = es.search(index='beek', doc_type='page', body={
-        'query': {'query_string': {'query': '%s' % q}},
+        'query': query,
         'highlight': {'fields': {'text':
-            {"fragment_size" : 90, "number_of_fragments" : 1}}},
-        "sort": { "date": { "order": "desc" }}})
-    return render_template('home.html', hits=result['hits'])    
+            {"fragment_size" : 90, "number_of_fragments" : 1}}}})
+
+    people = people_from_results(result['hits']['hits'])
+
+    return render_template('home.html', hits=result['hits'], people=people)    
     # return "<pre>%s</pre>" % (hits)
+
+def people_from_results(results):
+    people = dict()
+    for result in results:
+        print result['_source'].keys()
+        for entity in result['_source']['entities']:
+            
+            if entity['type'] == "Person" and entity.get('disambiguated'):
+                disam = entity['disambiguated']
+                people[ disam['name'] ] = disam.get('dbpedia', '')
+    return people
 
 
 @app.route("/api/remove")
@@ -95,6 +123,7 @@ def add_url():
 
     # return jsonify(msg="ok enqueued")
     return redirect(url_for('home'))
+
 
 
 if __name__ == "__main__":
