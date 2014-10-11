@@ -13,7 +13,7 @@ import datetime
 import dateutil.parser
 import elasticsearch
 import time
-import evernote
+import our_evernote
 
 app = Flask(__name__)
 
@@ -251,7 +251,7 @@ def search():
 def load_from_evernote():
     token = request.args.get('token')
     token = 'S=s1:U=8fa64:E=1505674a78d:C=148fec37b28:P=1cd:A=en-devtoken:V=2:H=557207e871d827a672dd55ffdb6b0a11'
-    urls = evernote.get_source_urls(token)
+    #urls = our_evernote.get_source_urls(token)
     return jsonify({'urls': urls})
 
 
