@@ -90,11 +90,11 @@ def query_alchemy(url):
 def query_embedly(url):
     """ Get embedly, if available, store it in a separate doc_type. """
     client = embedly.Embedly(os.environ['EMBEDLY_API_KEY'])
-    if client.is_supported(url):
-        resp = client.oembed(url)
-        data = resp.__dict__        
-        es = elasticsearch.Elasticsearch()
-        es.update(index='beek', doc_type='page', id=url_to_doc_id(url), body={'doc': {'embedly': data}})
+    #if client.is_supported(url):
+    resp = client.oembed(url)
+    data = resp.__dict__        
+    es = elasticsearch.Elasticsearch()
+    es.update(index='beek', doc_type='page', id=url_to_doc_id(url), body={'doc': {'embedly': data}})
 
 
 

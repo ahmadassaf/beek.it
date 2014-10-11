@@ -121,6 +121,64 @@ def home():
     # return "<pre>%s</pre>" % (hits)
 
 
+@app.route("/query")
+def query():
+    q = request.args.get('q')
+    
+    es = elasticsearch.Elasticsearch()
+    query = {'query_string': {'query': '%s' % q}}
+    result = es.search(index='beek', doc_type='page', body={
+        'query': query,
+        'highlight': {'fields': {'text':
+            {"fragment_size" : 90, "number_of_fragments" : 1}}}})['hits']['hits']
+
+    output = []
+
+    for row_raw in result:
+        row = row_raw['_source']
+        print row.keys()
+        import re
+        m = re.search('<title>(.*)</title>', row['content'])  
+        title = m.group(1)
+
+        images = {}
+        try:
+            images = es.get_source(index='beek', doc_type='images', id='dbpedia')
+        except Exception as err:
+            print 'IMAGES NOT DOWNLOADED'
+
+        cities = []
+        people = []
+        for entity in row.get('entities',[]):
+            if entity['type'] == 'City' and entity.get('disambiguated') and entity.get('disambiguated').get('geo'):
+                city_desc = entity.get('disambiguated')
+                lat_long = city_desc['geo'].split(' ')
+                city_desc['latitude'] = lat_long[0]
+                city_desc['longitude'] = lat_long[1]
+                city_desc.pop('geo')
+                city_desc['image'] = images['cities'].get(city_desc['name'],'')
+                cities.append(city_desc)
+            elif entity['type'] == 'Person' and entity.get('disambiguated'):
+                person_desc = entity.get('disambiguated')
+                person_desc['image'] = images['people'].get(person_desc['name'],'')
+                person = entity.get('disambiguated')
+                people.append(person)
+
+
+        output.append(
+            {
+            'id': row_raw['_id'],
+            'title': title,
+            'excerpt': row_raw['highlight']['text'] if row_raw.get('highlight') else '',
+            'type' : row['embedly']['data']['type'] if row.get('embedly') else 'link',
+            'thumbnail': row['embedly']['data']['thumbnail_url'] if row.get('embedly') else '',
+            'cities': cities,
+            'people': people
+            }
+        )
+    print output
+    return jsonify({'out':output})
+
 
 @app.route("/api/remove")
 def remove_url():
