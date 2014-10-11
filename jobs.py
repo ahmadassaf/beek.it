@@ -44,12 +44,15 @@ def alchemy_call(service, params):
 def query_alchemy(url):
     """ Ask alchemy. Store alchemy results in a separate doc_type. """    
     response = alchemy_call('URLGetCategory', {'url':url} )
+    print(response)
     category = response.get('category', [])
 
     response = alchemy_call('URLGetLanguage', {'url':url} )
+    print(response)
     language = response.get('language', [])
 
     response = alchemy_call('URLGetRankedNamedEntities', {'url':url} )
+    print(response)
     entities = response.get('entities', [])
 
     # some finer grained entities
@@ -64,6 +67,7 @@ def query_alchemy(url):
 
     # extract full text text
     response = alchemy_call('URLGetRawText', {'url':url} )
+    print(response)
     text = response.get('text', '')
 
     if text:

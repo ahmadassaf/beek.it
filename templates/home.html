@@ -56,16 +56,56 @@
                 <input type="text" name="q" id="q" placeholder="Type ..." />
             </div>
             <div>
+		<!-- Some more info on empty search -->
                 {% if docs %}
                     You have {{ total }} bookmarks. Among them:
 
                     <ul>
                     {% for doc in docs.hits %}
-                        <li>{{ doc._source.url }}
+			<li><a href="{{ doc._source.url }}">{{ doc._source.url }}</a>
                             <span class="dimmed">{{ doc._source.date|human_time }}</span>
                         </li>
                     {% endfor %}
                     </ul>
+
+		    <hr>
+
+		    <div class="row" id="q-input">
+			<div class="small-4 large-4 columns">
+			    <strong>Cities</strong><br>
+			    <ul>
+			    {% for city in cities %}
+
+				<li>
+				    <!-- <img src={{ images['cities'][city] }} width=120px/> -->
+				    <a href="{{ url_for('home', q='%s' % city) }}">{{ city }}</a>
+				</li>
+			    {% endfor %}
+			    </ul>
+			</div>
+			<div class="small-4 large-4 columns">
+			    <strong>People</strong><br>
+			    <ul>
+			    {% for person in people %}
+				<li>
+				    <!-- <img src={{ images['people'][person] }} width=120px/> -->
+				    <a href="{{ url_for('home', q='%s' % person) }}">{{ person }}</a></li>
+			    {% endfor %}
+			    </ul>
+
+			</div>
+			<div class="small-4 large-4 columns">
+			    <strong>Auto folders</strong><br>
+
+			    <ul>
+			    {% for cat in cats %}
+				<li><a href="{{ url_for('home', q='category:%s' % cat) }}">{{ cat|human_category }}</a></li>
+			    {% endfor %}
+			    </ul>
+
+			</div>
+		    </div>
+
                 {% endif %}
 
                 <ul>
@@ -74,7 +114,7 @@
                     {% for hit in hits.hits %}
                     <div class="item">
                         <li>
-                            <strong>&#9880; <a href="{{ hit._source.url }}">{{ hit._source.url }}</a></strong>
+			    <strong>&#9880; <a href="{{ hit._source.url }}">{{ hit._source.url|truncate(60, True) }}</a></strong>
                             <span class="dimmed">{{hit._source.date|human_time }}
                                 <a href="{{ url_for('remove_url', id=hit._id) }}">x</a></span>
                             {% if hit._source.embedly %}

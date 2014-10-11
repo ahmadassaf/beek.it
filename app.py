@@ -34,7 +34,11 @@ def human_category(s):
 @app.template_filter('human_time')
 def human_time(s):
     """ 2014-10-11T08:53:18.392370 """
-    return pretty_date(dateutil.parser.parse(s))
+    try:
+	return pretty_date(dateutil.parser.parse(s))
+    except Exception as err:
+	print(err)
+    return s
 
 
 @app.route('/hello')
@@ -52,8 +56,7 @@ def bookmarked():
     return jsonify({'bookmarked': result['hits']['total']!=0})
 
 
-@app.route("/terms")
-def terms():
+def get_terms():
     es = elasticsearch.Elasticsearch()
     result = es.search(index='beek', body={
             "query" : { "match_all" : {}}}, size=100)
@@ -67,7 +70,12 @@ def terms():
         if cat: 
             cats.add(cat)
 
-    return jsonify({'cities':cities, 'people':people, 'categories':list(cats)})
+    return cities, people, list(cats)
+
+@app.route("/terms")
+def terms():
+    cities, people, cats = get_terms()
+    return jsonify({'cities':cities, 'people':people, 'categories':cats})
 
 @app.route("/images")
 def images():
@@ -103,11 +111,15 @@ def home():
     if not q:
         # get some stats
         es = elasticsearch.Elasticsearch()
-        total = es.count(index='beek', body={'query': {'match_all': {}}}).get('count')
+	total = es.count(index='beek', doc_type='page', body={'query': {'match_all': {}}}).get('count')
         result = es.search(index='beek', body={
             "query" : { "match_all" : {}}}, size=5)
 
-        return render_template('home.html', docs=result['hits'], total=total)
+	cities, people, cats = get_terms()
+	images = es.get_source(index='beek', doc_type='images', id='dbpedia')
+	return render_template('home.html', docs=result['hits'], total=total,
+			       cities=cities, people=people, cats=cats,
+			       images=images)
 
     es = elasticsearch.Elasticsearch()
     query = {'query_string': {'query': '%s' % q}}
