@@ -5,3 +5,15 @@ This project aims at tackling the on-going problem of organizing pages that you 
 
 This project is part of the [HackZurich14](hackzurich.com)
 
+Server
+------
+
+To deploy on heroku, set the following config vars:
+
+    $ heroku config
+    === beek Config Vars
+    ALCHEMY_API_KEY:     2479fc...
+    EMBEDLY_API_KEY:     0b64e3...
+    ORCHESTRATE_API_KEY: 27b04d...
+
+    $ git push heroku master
