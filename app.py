@@ -31,25 +31,25 @@ def alchemy_call(service, params):
     params['outputMode'] = 'json'
     params['apikey'] = os.environ['ALCHEMY_API_KEY']
     r = requests.get(ALCHEMY_URL + service, params=params)
-    app.logger.debug('json', r.text)
+    app.logger.debug('json: %s' % r.text)
     return json.loads(r.text)
 
 def alchemy_flow(url):
     #extract category
     response = alchemy_call('URLGetCategory', {'url':url} )
     category = response.get('category', [])
-    app.logger.debug('category', category)
+    app.logger.debug('category: %s' % category)
 
     #extract full text text
     response = alchemy_call('URLGetRawText', {'url':url} )
     text = response.get('text', '')
-    app.logger.debug('text', text)
+    app.logger.debug('text: %s' % text)
 
     if text:
         #extract keywords
         keywords_params = {'sentiment':0, 'keywordExtractMode': 'strict', 'maxRetrieve': 10, 'url': url}
         keywords = alchemy_call('URLGetRankedKeywords', keywords_params ).get('keywords', [])
-        app.logger.debug('keywords', keywords)
+        app.logger.debug('keywords: %s' % keywords)
     else:
         keywords = []
 
