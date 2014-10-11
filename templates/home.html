@@ -1,0 +1,123 @@
+<html class="no-js" lang="en" >
+<head>
+    <title>B</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}">
+
+    <!-- This is how you would link your custom stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+
+    <script src="{{ url_for('static', filename='js/vendor/modernizr.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/foundation.min.js') }}"></script>
+    <script>
+        $(document).foundation();
+        $(document).ready(function() {
+            $("#q").focus()
+        });
+    </script>
+    <style type="text/css">
+        #q-input {
+            margin-top: 10px;
+            padding: 0;
+
+        }
+        .dimmed {
+            color: gray;
+        }
+        ul, li {
+            margin: 0;
+            list-style-type: none;
+        }
+        .item {
+            padding: 5px 0 5px 0;
+            /*border-bottom: solid thin gray;*/
+        }
+        em {
+            background: #fff380;
+        }
+        .addons {
+            font-size: 14px;
+        }
+        .thumbnail {
+            float: left;
+            padding-right: 20px;
+        }
+        .reset {
+            float:none;
+        }
+    </style>
+</head>
+<body>
+    <div class="row" id="q-input">
+      <div class="small-12 large-12 columns">
+          <form>
+            <div class="row">
+                <h2>Beek Search</h2>
+                <input type="text" name="q" id="q" placeholder="Type ..." />
+            </div>
+            <div>
+                {% if docs %}
+                    You have {{ total }} bookmarks. Recently added:
+
+                    <ul>
+                    {% for doc in docs.hits %}
+                        <li>{{ doc._source.url }}
+                            <span class="dimmed">{{ doc._source.date|human_time }}</span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <ul>
+                {% if hits %}
+                    {% for hit in hits.hits %}
+                    <div class="item">
+                        <li>
+                            <strong>&#9880; <a href="{{ hit._source.url }}">{{ hit._source.url }}</a></strong>
+                            <span class="dimmed">{{hit._source.date|human_time }}
+                                <a href="{{ url_for('remove_url', id=hit._id) }}">x</a></span>
+                            {% if hit._source.embedly %}
+                                <div class="thumbnail">
+
+                                    <a href="{{ hit._source.embedly.data.url }}"><img width="120px" src="{{ hit._source.embedly.data.thumbnail_url }}"></a>
+                                </img></div>
+                            {% endif %}
+                            <!-- <pre>{{  hit._source }}</pre> -->
+                            <br>
+                            <!-- <span class="dimmed">{{ hit._source.text|truncate(400) }}</span><br> -->
+                            <span class="highlight">
+                                {% if hit.highlight %}
+                                    {% for snippet in hit.highlight.text %}
+                                        {{ snippet|safe }} ...
+                                    {% endfor %}
+                                    <br>
+                                {% endif %}
+                            </span>
+                            <div class="addons">
+                            {% if hit._source.actors %}
+                                <strong>Actors</strong> {{ hit._source.actors[:8]|join(', ') }}<br>
+                            {% endif %}
+                            {% if hit._source.locations %}
+                                <strong>Places</strong> {{ hit._source.locations[:8]|join(', ') }}<br>
+                            {% endif %}
+                            {% if hit._source.terminology %}
+                                <strong>Terminology</strong> {{ hit._source.terminology[:8]|join(', ') }}<br>
+                            {% endif %}                            
+                            {% if hit._source.category %}
+                                <strong>Category</strong>
+                                    <a href="{{ url_for('home', q='category:%s' % hit._source.category) }}">{{ hit._source.category|human_category }}</a>
+                                    <br>
+                            {% endif %}                            
+                            </div>
+                            <div class="reset">&nbsp;</div>
+                        </li>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                </ul>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

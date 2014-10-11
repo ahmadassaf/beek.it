@@ -4,123 +4,98 @@
 A microservice, that takes an URL and saves the url in some database.
 """
 
-from flask import Flask, request, abort, jsonify, g
-from porc import Client
+from flask import Flask, request, abort, jsonify, g, render_template, redirect, url_for
+from jobs import *
+from redis import Redis
+from rq import Queue
+from utils import url_to_doc_id, pretty_date
 import datetime
-import embedly
-import hashlib
-import json
-import nltk
-import os
-import requests
-import uuid
-
-# embedly
-embedly_client = embedly.Embedly(os.environ['EMBEDLY_API_KEY'])
-
-# orchestrate.io - data storage pluse search
-client = Client(os.environ['ORCHESTRATE_API_KEY'])
-
-client.ping().raise_for_status()
+import dateutil.parser
+import elasticsearch
+import time
 
 app = Flask(__name__)
 
-def alchemy_call(service, params):
-    ALCHEMY_URL = "http://access.alchemyapi.com/calls/url/"
-
-    params['outputMode'] = 'json'
-    params['apikey'] = os.environ['ALCHEMY_API_KEY']
-    r = requests.get(ALCHEMY_URL + service, params=params)
-    app.logger.debug('json: %s' % r.text)
-    return json.loads(r.text)
-
-def alchemy_flow(url):
-    #extract category
-    response = alchemy_call('URLGetCategory', {'url':url} )
-    category = response.get('category', [])
-    app.logger.debug('category: %s' % category)
-
-    #extract full text text
-    response = alchemy_call('URLGetRawText', {'url':url} )
-    text = response.get('text', '')
-    app.logger.debug('text: %s' % text)
-
-    if text:
-        #extract keywords
-        keywords_params = {'sentiment':0, 'keywordExtractMode': 'strict', 'maxRetrieve': 10, 'url': url}
-        keywords = alchemy_call('URLGetRankedKeywords', keywords_params ).get('keywords', [])
-        app.logger.debug('keywords: %s' % keywords)
-    else:
-        keywords = []
-
-    return {
-        'category': category,
-        'text': text,
-        'keywords': keywords,
+@app.template_filter('human_category')
+def human_category(s):
+    """ 2014-10-11T08:53:18.392370 """
+    cats = {
+        'culture_politics': 'Culture/Politics',
+        'recreation': 'Recreation', 
+        'computer_internet': 'Computer/Internet',
+        'science_technology': 'Science/Technology',
+        'arts_entertainment': 'Arts/Entertainment',
+        'business': 'Business',
     }
+    return cats.get(s, s)
 
-@app.route('/')
+
+@app.template_filter('human_time')
+def human_time(s):
+    """ 2014-10-11T08:53:18.392370 """
+    return pretty_date(dateutil.parser.parse(s))
+
+
+@app.route('/hello')
 def root():
     return app.send_static_file('index.html')
 
-@app.route("/api/addUrl")
+
+@app.route("/")
+def home():
+    q = request.args.get('q')
+    # add new URL
+    if q and q.strip().startswith('+'):
+        url = q.strip().strip('+ ')
+        # append http:// if needed
+        if not url.startswith('http'):
+            url = 'http://%s' % url
+        return redirect(url_for('add_url', url=url))
+    if not q:
+        # get some stats
+        es = elasticsearch.Elasticsearch()
+        total = es.count(index='beek', body={'query': {'match_all': {}}}).get('count')
+        result = es.search(index='beek', body={
+            "query" : { "match_all" : {}}, "sort": { "date": { "order": "desc" }}}, size=5)
+        return render_template('home.html', docs=result['hits'], total=total)
+
+    es = elasticsearch.Elasticsearch()
+    result = es.search(index='beek', doc_type='page', body={
+        'query': {'query_string': {'query': '%s' % q}},
+        'highlight': {'fields': {'text':
+            {"fragment_size" : 90, "number_of_fragments" : 1}}},
+        "sort": { "date": { "order": "desc" }}})
+    return render_template('home.html', hits=result['hits'])    
+    # return "<pre>%s</pre>" % (hits)
+
+
+@app.route("/api/remove")
+def remove_url():
+    if request.args.get('id'):
+        es = elasticsearch.Elasticsearch()
+        es.delete(index='beek', doc_type='page', id=request.args.get('id'))
+    return redirect(url_for('home'))
+
+
+@app.route("/api/add")
 def add_url():
     url = request.args.get('url')
     if not url:
-        return jsonify(msg='no url supplied')
+        return jsonify(msg='no url supplied'), 400
 
-    id = None
-    app.logger.debug('searching orchestrate.io...')
-    pages = client.search('page.v1', 'url:"%s"' % url)
-    page = pages.next()
+    q = Queue(connection=Redis())
+    # First, index the page
+    index_job = q.enqueue(index, url)
+    # In parallel, do Alchemy on URL and store it in a separate doc type
+    alchemy_job = q.enqueue(query_alchemy, url, depends_on=index_job)
+    # Embedly ...
+    embedly_job = q.enqueue(query_embedly, url, depends_on=alchemy_job)
+    # Count the words in the page ...
+    wordcount_job = q.enqueue(count_words, url_to_doc_id(url), depends_on=embedly_job)
 
-    if len(page['results']) == 0:
-        app.logger.debug('no such page or collection, generating key')
-        id = str(uuid.uuid4())
-    else:
-        try:
-            page.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            app.logger.debug(err)
-            id = str(uuid.uuid4())
-        else:
-            # reuse the ID
-            app.logger.debug('page exists')
-            if len(page['results']) > 1:
-                app.logger.warn('more than one document with the same id')
-            id = page['results'][0]['path']['key']
+    # return jsonify(msg="ok enqueued")
+    return redirect(url_for('home'))
 
-    if id is None:
-        abort(500)
-
-    # redownload the page - we could spare that for now
-    r = requests.get(url)
-    html = r.text
-
-    embedly_data = {}
-    alchemy_data = {}
-
-    if embedly_client.is_supported(url):
-        embedly_response = embedly_client.oembed(url)
-        embedly_data = embedly_response.__dict__
-        app.logger.debug('EMBEDLY >>>\n%s' % embedly_data)
-    else:
-        app.logger.debug('ALCHEMY >>>')
-        alchemy_data = alchemy_flow(url)
-
-    response = client.put('page.v1', id, {
-        'html': html,
-        'url': url,
-        'datetime': datetime.datetime.utcnow().strftime("%s"),
-        # add api results here ...
-        'embedly': embedly_data,
-        'alchemy': alchemy_data,
-    })
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as err:
-        return jsonify(msg=str(err))
-    return jsonify(msg="ok", url=url, id=id)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
