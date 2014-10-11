@@ -6,9 +6,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/static/css/style.css" />
   <link href='http://fonts.googleapis.com/css?family=Montserrat:400,700' rel='stylesheet' type='text/css'>
+  <link id="siteicon" rel="icon" href="./beek.png"/>
   <script type='text/javascript' src='/static/js/jquery-1.11.1.min.js'></script>
   <script type='text/javascript' src='/static/js/jquery.particleground.min.js'></script>
   <script type='text/javascript' src='/static/js/demo.js'></script>
+  <script>
+    var loc = location.href;
+    var baseurl = loc.substring(0, loc.lastIndexOf('/'));
+
+    var data = {
+      // currently required
+      "name": "beek.it Service",
+      "iconURL": baseurl + "/beek.png",
+      "icon32URL": baseurl + "/beek.png",
+      "icon64URL": baseurl + "/beek.png",
+
+      "markURL": baseurl + "/marks.html?url=%{url}",
+      "markedIcon": baseurl + "/marked.png",
+      "unmarkedIcon": baseurl + "/unmarked.png",
+
+      // should be available for display purposes
+      "description": "Add pages to beek.it. Beek.it will orgranize it for you!",
+      "author": "beek.it",
+      "homepageURL": "http://beek.it",
+
+      // optional
+      "version": "1.0"
+    }
+
+    function activate(node) {
+      var event = new CustomEvent("ActivateSocialFeature");
+      node.setAttribute("data-service", JSON.stringify(data));
+      node.dispatchEvent(event);
+    }
+  </script>
 </head>
 
 <body>
@@ -19,6 +50,7 @@
     <p>A Smart Semantic Bookmarking System</p>
     <a href="https://github.com/ahmadassaf/beek.it" class="btn">Download</a>
     <p>Example: <a href="/api/addUrl?url=http://heise.de">/api/addUrl?url=http://heise.de</a></p>
+    <button onclick="activate(this)" title="Add beek.it to Firefox">Add beek.it to Firefox</button>
   </div>
 </div>
 </body>
