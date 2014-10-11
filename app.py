@@ -147,7 +147,7 @@ def home():
     result = es.search(index='beek', doc_type='page', body={
         'query': query,
         'highlight': {'fields': {'text':
-            {"fragment_size" : 90, "number_of_fragments" : 1}}}})
+            {"fragment_size" : 250, "number_of_fragments" : 3}}}})
 
     people = filter_type_from_results('Person', result['hits']['hits'])
 
@@ -277,7 +277,7 @@ def search():
     es = elasticsearch.Elasticsearch()
     result = es.search(index='beek', doc_type='page', body={
         'query': {'query_string': {'query': '%s' % " AND ".join(parts)}},
-        'highlight': {'fields': {'text': {"fragment_size" : 90, "number_of_fragments" : 1}}}})
+        'highlight': {'fields': {'text': {"fragment_size" : 300, "number_of_fragments" : 1}}}})
     return render_template('home.html', hits=result['hits'])
 
 @app.route("/api/load_from_evernote")
