@@ -151,5 +151,38 @@ def add_url():
     # return jsonify(msg="ok enqueued")
     return redirect(url_for('home'))
 
+@app.route("/api/search")
+def search():
+    parts = []
+    fulltext = request.args.get('fulltext')
+    if fulltext:
+        parts.append('_source.text:%s' % fulltext)
+
+    city = request.args.get('city')
+    if city:
+        parts.append('(entities.type:City AND entities.text:"%s")' % city)
+
+    country = request.args.get('country')
+    if country:
+        parts.append('(entities.type:Country AND entities.text:"%s")' % country)
+
+    continent = request.args.get('continent')
+    if continent:
+        parts.append('(entities.type:Continent AND entities.text:"%s")' % continent)
+
+    region = request.args.get('region')
+    if region:
+        parts.append('(entities.type:Country AND entities.text:"%s")' % country)
+
+    continent = request.args.get('continent')
+    if continent:
+        parts.append('(entities.type:Continent AND entities.text:"%s")' % continent)
+
+    es = elasticsearch.Elasticsearch()
+    result = es.search(index='beek', doc_type='page', body={
+        'query': {'query_string': {'query': '%s' % " AND ".join(parts)}},
+        'highlight': {'fields': {'text': {"fragment_size" : 90, "number_of_fragments" : 1}}}})
+    return render_template('home.html', hits=result['hits'])
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
