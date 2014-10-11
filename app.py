@@ -136,7 +136,7 @@ def home():
         result = es.search(index='beek', body={
             "query" : { "match_all" : {}}}, size=5)
 
-	cities, people, cats = get_terms()
+	cities, people, cats, _ = get_terms()
 	images = es.get_source(index='beek', doc_type='images', id='dbpedia')
 	return render_template('home.html', docs=result['hits'], total=total,
 			       cities=cities, people=people, cats=cats,
