@@ -79,7 +79,7 @@
 
 				<li>
 				    <!-- <img src={{ images['cities'][city] }} width=120px/> -->
-				    <a href="{{ url_for('home', q='%s' % city) }}">{{ city }}</a>
+				    <a href="{{ url_for('home', q='"%s"' % city) }}">{{ city }}</a>
 				</li>
 			    {% endfor %}
 			    </ul>
@@ -90,7 +90,7 @@
 			    {% for person in people %}
 				<li>
 				    <!-- <img src={{ images['people'][person] }} width=120px/> -->
-				    <a href="{{ url_for('home', q='%s' % person) }}">{{ person }}</a></li>
+				    <a href="{{ url_for('home', q='"%s"' % person) }}">{{ person }}</a></li>
 			    {% endfor %}
 			    </ul>
 
