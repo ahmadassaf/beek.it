@@ -42,8 +42,13 @@ def root():
 
 @app.route("/terms")
 def terms():
-    match_all = { "match_all" : {}}
-    return jsonify(get_field_values(match_all, 'actors_joined'))
+    es = elasticsearch.Elasticsearch()
+    result = es.search(index='beek', body={
+            "query" : { "match_all" : {}}}, size=100)
+
+    cities = filter_type_from_results('City', result['hits']['hits'])
+    people = filter_type_from_results('Person', result['hits']['hits'])
+    return jsonify({'cities':cities, 'people':people})
 
 def get_field_values(query, field_name):
     es = elasticsearch.Elasticsearch()
@@ -80,18 +85,19 @@ def home():
         'highlight': {'fields': {'text':
             {"fragment_size" : 90, "number_of_fragments" : 1}}}})
 
-    people = people_from_results(result['hits']['hits'])
+    people = people_from_results('Person', result['hits']['hits'])
 
     return render_template('home.html', hits=result['hits'], people=people)    
     # return "<pre>%s</pre>" % (hits)
 
-def people_from_results(results):
+
+def filter_type_from_results(ent_type, results):
     people = dict()
     for result in results:
         print result['_source'].keys()
-        for entity in result['_source']['entities']:
+        for entity in result['_source'].get('entities',[]):
             
-            if entity['type'] == "Person" and entity.get('disambiguated'):
+            if entity['type'] == ent_type and entity.get('disambiguated'):
                 disam = entity['disambiguated']
                 people[ disam['name'] ] = disam.get('dbpedia', '')
     return people
