@@ -55,6 +55,8 @@ def bookmarked():
             "query" : query}, size=100)
     return jsonify({'bookmarked': result['hits']['total']!=0})
 
+def filter_keywords(keywords):
+    return [ keyword for keyword in keywords if keyword > str(0.95)]
 
 def get_terms():
     es = elasticsearch.Elasticsearch()
@@ -64,18 +66,23 @@ def get_terms():
     cities = filter_type_from_results('City', data)
     people = filter_type_from_results('Person', data)
 
+    keywords = set()
     cats = set()
     for row in data:
         cat = row['_source'].get('category', None)
         if cat: 
             cats.add(cat)
+        for key in row['_source'].get('keywords', []):
+            keywords.add(key['text'])
 
-    return cities, people, list(cats)
+    keywords = filter_keywords(keywords)
+
+    return cities, people, list(cats), keywords
 
 @app.route("/terms")
 def terms():
-    cities, people, cats = get_terms()
-    return jsonify({'cities':cities, 'people':people, 'categories':cats})
+    cities, people, cats, keywords = get_terms()
+    return jsonify({'cities':cities, 'people':people, 'categories':cats, 'keywords':keywords})
 
 @app.route("/images")
 def images():
