@@ -44,7 +44,7 @@ def root():
 def bookmarked():
     import urllib
     url = request.args.get('url')
-    query = {'query_string': {'query': '%s' % url}}
+    query = {'query_string': {'query': 'url:"%s"' % url}}
     es = elasticsearch.Elasticsearch()
     result = es.search(index='beek', body={
             "query" : query}, size=100)
