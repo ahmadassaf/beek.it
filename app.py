@@ -13,6 +13,7 @@ import datetime
 import dateutil.parser
 import elasticsearch
 import time
+import evernote
 
 app = Flask(__name__)
 
@@ -245,6 +246,14 @@ def search():
         'query': {'query_string': {'query': '%s' % " AND ".join(parts)}},
         'highlight': {'fields': {'text': {"fragment_size" : 90, "number_of_fragments" : 1}}}})
     return render_template('home.html', hits=result['hits'])
+
+@app.route("/api/load_from_evernote")
+def load_from_evernote():
+    token = request.args.get('token')
+    token = 'S=s1:U=8fa64:E=1505674a78d:C=148fec37b28:P=1cd:A=en-devtoken:V=2:H=557207e871d827a672dd55ffdb6b0a11'
+    urls = evernote.get_source_urls(token)
+    return jsonify({'urls': urls})
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
