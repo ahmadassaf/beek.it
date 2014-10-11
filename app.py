@@ -139,6 +139,8 @@ def query():
         print row.keys()
         import re
         m = re.search('<title>(.*)</title>', row['content'])  
+        if not m:
+            continue
         title = m.group(1)
 
         images = {}
