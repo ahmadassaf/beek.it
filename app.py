@@ -169,8 +169,8 @@ def query():
 
         output.append(
             {
-	    'url': row['url'],
-	    'date': row['date'],
+            'url': row['url'],
+            'date': row['date'],
             'id': row_raw['_id'],
             'title': title,
             'excerpt': row_raw['highlight']['text'] if row_raw.get('highlight') else '',
