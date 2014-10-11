@@ -52,7 +52,7 @@
       <div class="small-12 large-12 columns">
           <form>
             <div class="row">
-                <h2>Beek Search</h2>
+                <h2><a href="{{ url_for('home')}}">Beek Search</a></h2>
                 <input type="text" name="q" id="q" placeholder="Type ..." />
             </div>
             <div>
@@ -62,7 +62,14 @@
 
                     <ul>
                     {% for doc in docs.hits %}
-			<li><a href="{{ doc._source.url }}">{{ doc._source.url }}</a>
+			<li>
+                {% if doc._source.embedly.data.title %}
+                    <a href="{{ doc._source.url }}">
+                    {{ doc._source.embedly.data.title|truncate(90, True) }}</a>
+                {% else %}
+                    <a href="{{ doc._source.url }}">
+                    {{ doc._source.url|truncate(90, True) }}</a>
+                {% endif %}
                             <span class="dimmed">{{ doc._source.date|human_time }}</span>
                         </li>
                     {% endfor %}
@@ -143,14 +150,14 @@
                             {% endif %}
                             {% if hit._source.terminology %}
                                 <strong>Terminology</strong> {{ hit._source.terminology[:8]|join(', ') }}<br>
-                            {% endif %}                            
+                            {% endif %}
                             {% if hit._source.category %}
                                 <strong>Category</strong>
                                     <a href="{{ url_for('home', q='category:%s' % hit._source.category) }}">{{ hit._source.category|human_category }}</a>
                                     <br>
-                            {% endif %}                            
+                            {% endif %}
+                            <hr class="reset">
                             </div>
-                            <div class="reset">&nbsp;</div>
                         </li>
                     </div>
                     {% endfor %}
