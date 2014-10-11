@@ -40,24 +40,45 @@ def human_time(s):
 def root():
     return app.send_static_file('index.html')
 
+@app.route("/bookmarked")
+def bookmarked():
+    import urllib
+    url = request.args.get('url')
+    query = {'query_string': {'query': '%s' % url}}
+    es = elasticsearch.Elasticsearch()
+    result = es.search(index='beek', body={
+            "query" : query}, size=100)
+    return jsonify({'bookmarked': result['hits']['total']!=0})
+
+
 @app.route("/terms")
 def terms():
     es = elasticsearch.Elasticsearch()
     result = es.search(index='beek', body={
             "query" : { "match_all" : {}}}, size=100)
+    data = result['hits']['hits']
+    cities = filter_type_from_results('City', data)
+    people = filter_type_from_results('Person', data)
 
-    cities = filter_type_from_results('City', result['hits']['hits'])
-    people = filter_type_from_results('Person', result['hits']['hits'])
-    return jsonify({'cities':cities, 'people':people})
+    cats = set()
+    for row in data:
+        cat = row['_source'].get('category', None)
+        if cat: 
+            cats.add(cat)
 
-def get_field_values(query, field_name):
-    es = elasticsearch.Elasticsearch()
-    AGG = 'AGG'
-    query = {"query" : query, 'aggs': { 
-                AGG : {'terms': {"field" : field_name}} 
-            } }
-    result = es.search(index='beek', body=query, size=100)
-    return result['aggregations'].get(AGG, {}).get('buckets',{})
+    return jsonify({'cities':cities, 'people':people, 'categories':list(cats)})
+
+
+def filter_type_from_results(ent_type, results):
+    terms = dict()
+    for result in results:
+        print result['_source'].keys()
+        for entity in result['_source'].get('entities',[]):
+            
+            if entity['type'] == ent_type and entity.get('disambiguated'):
+                    disam = entity['disambiguated']
+                    terms[ disam['name'] ] = disam.get('dbpedia', '')
+    return terms
 
 @app.route("/")
 def home():
@@ -85,22 +106,11 @@ def home():
         'highlight': {'fields': {'text':
             {"fragment_size" : 90, "number_of_fragments" : 1}}}})
 
-    people = people_from_results('Person', result['hits']['hits'])
+    people = filter_type_from_results('Person', result['hits']['hits'])
 
     return render_template('home.html', hits=result['hits'], people=people)    
     # return "<pre>%s</pre>" % (hits)
 
-
-def filter_type_from_results(ent_type, results):
-    people = dict()
-    for result in results:
-        print result['_source'].keys()
-        for entity in result['_source'].get('entities',[]):
-            
-            if entity['type'] == ent_type and entity.get('disambiguated'):
-                disam = entity['disambiguated']
-                people[ disam['name'] ] = disam.get('dbpedia', '')
-    return people
 
 
 @app.route("/api/remove")
