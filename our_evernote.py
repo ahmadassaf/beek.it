@@ -78,6 +78,6 @@ def get_source_urls(auth_token):
         wholeNote = note_store.getNote(auth_token, note.guid, 
                         True, False, False, False)
 
-        urls_and_contents.append((share_url, wholeNote.content))
-    return urls_and_contents
+        urls_and_contents.append((share_url, wholeNote))
+    return (note_store, urls_and_contents)
 

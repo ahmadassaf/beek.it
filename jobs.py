@@ -54,15 +54,28 @@ def alchemy_call_data(service, params):
 
 def process_evernote(token):
     import our_evernote
+    from evernote.edam.notestore import NoteStore
+    import evernote.edam.type.ttypes as Types
     token = 'S=s1:U=8fa64:E=1505674a78d:C=148fec37b28:P=1cd:A=en-devtoken:V=2:H=557207e871d827a672dd55ffdb6b0a11'
-    urls_and_contents = our_evernote.get_source_urls(token)
+    note_store, urls_and_contents = our_evernote.get_source_urls(token)
     es = elasticsearch.Elasticsearch()
 
-    for url, content in urls_and_contents:
 
+    tags = dict( (tag.name, tag) for tag in note_store.listTags(token))
+
+    for url, note in urls_and_contents:
+        content = note.content
         response = alchemy_call_data('TextGetCategory', {'text':content} )
         print(response)
         category = response.get('category', [])
+        tag = tags.get(category)
+        if not tag:
+            tag_data = Types.Tag(name=category)
+            tag = note_store.createTag(token, tag_data)
+
+        if tag.guid not in note.tagGuids:
+            note.tagGuids.append(tag.guid)
+            note_store.updateNote(token, note)
 
         es.index(index='beek', doc_type='page', id=url_to_doc_id(url), body={
             'url': url,
