@@ -53,15 +53,10 @@ def bookmarked():
             "query" : query}, size=100)
     return jsonify({'bookmarked': result['hits']['total']!=0})
 
-<<<<<<< HEAD
-@app.route("/terms")
-def terms():
-=======
 def filter_keywords(keywords):
     return [ keyword for keyword in keywords if keyword > str(0.95)]
 
 def get_terms():
->>>>>>> 77e0288a225a154709ef409ba8590d0b5a6e560b
     es = elasticsearch.Elasticsearch()
     result = es.search(index='beek', body={
             "query" : { "match_all" : {}}}, size=100)
