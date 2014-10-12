@@ -14,6 +14,35 @@
         $(document).ready(function() {
             $("#q").focus()
         });
+
+        var loc = location.href;
+        var baseurl = loc.substring(0, loc.lastIndexOf('/'));
+
+        var data = {
+          // currently required
+          "name": "beek.it Service",
+          "iconURL": baseurl + "/static/img/beek.png",
+          "icon32URL": baseurl + "/static/img/beek.png",
+          "icon64URL": baseurl + "/static/img/beek.png",
+
+          "markURL": baseurl + "/static/mark.html?url=%{url}",
+          "markedIcon": baseurl + "/static/img/success.png",
+          "unmarkedIcon": baseurl + "/static/img/beek.png",
+
+          // should be available for display purposes
+          "description": "Add pages to beek.it. beek.it will orgranize it for you!",
+          "author": "beek.it",
+          "homepageURL": "http://beek.it",
+
+          // optional
+          "version": "1.0"
+        }
+
+        function activate(node) {
+          var event = new CustomEvent("ActivateSocialFeature");
+          node.setAttribute("data-service", JSON.stringify(data));
+          node.dispatchEvent(event);
+        }
     </script>
     <style type="text/css">
         body {
@@ -48,6 +77,20 @@
         .reset {
             float:none;
         }
+        #add-to-firefox-button {
+          position: absolute;
+          top: 15px;
+          right: 20px;
+          width: 60px;
+          cursor: pointer;
+        }
+        #add-to-chrome-button {
+          position: absolute;
+          top: 85px;
+          right: 20px;
+          width: 60px;
+          cursor: pointer;
+        }
         .snippet {
             font-size: 0.8em;
         }
@@ -58,6 +101,8 @@
     </style>
 </head>
 <body>
+    <img id="add-to-firefox-button" onclick="activate(this)" src="{{ url_for('static', filename='img/add_to_firefox.png') }}" alt="Add beek.it to Firefox"/>
+    <a rel="chrome-webstore-item" href="https://chrome.google.com/webstore/detail/itemID" target="_blank"><img id="add-to-chrome-button" src="{{ url_for('static', filename='img/add_to_chrome.png') }}" alt="Add beek.it to Chrome"/></a>
     <div class="row" id="q-input">
       <div class="small-12 large-12 columns">
           <form>
@@ -135,7 +180,7 @@
                                             <a href="{{ hit._source.embedly.data.url }}"><img width="120px" src="{{ hit._source.embedly.data.thumbnail_url }}"></a>
                                         {% endif %}
                                     </img></div>
-                                {% endif %}                                
+                                {% endif %}
                             </div>
                             <div class="small-10 large-10 columns">
                                                         <li>
@@ -170,7 +215,7 @@
                                     <a href="{{ url_for('home', q='category:%s' % hit._source.category) }}">{{ hit._source.category|human_category }}</a>
                                     <br>
                             {% endif %}
-                            <hr class="reset">
+                            <hr class="reset"/>
                             </div>
                         </li>
 

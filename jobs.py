@@ -41,49 +41,15 @@ def alchemy_call(service, params):
     r = requests.get(ALCHEMY_URL + service, params=params)
     return json.loads(r.text)
 
-def alchemy_call_data(service, params):
-    """ Helper for alchemy_flow. """
-    ALCHEMY_URL = "http://access.alchemyapi.com/calls/text/"
-
-    params['outputMode'] = 'json'
-    params['apikey'] = os.environ['ALCHEMY_API_KEY']
-    print params['apikey']
-    r = requests.get(ALCHEMY_URL + service, params=params)
-    print 'RRRR', r.__dict__
-    return json.loads(r.text)
-
-def process_evernote(token):
-    import our_evernote
-    token = 'S=s1:U=8fa64:E=1505674a78d:C=148fec37b28:P=1cd:A=en-devtoken:V=2:H=557207e871d827a672dd55ffdb6b0a11'
-    urls_and_contents = our_evernote.get_source_urls(token)
-    es = elasticsearch.Elasticsearch()
-
-    for url, content in urls_and_contents:
-
-        response = alchemy_call_data('TextGetCategory', {'text':content} )
-        print(response)
-        category = response.get('category', [])
-
-        es.index(index='beek', doc_type='page', id=url_to_doc_id(url), body={
-            'url': url,
-            'category': category,
-            'text': content,
-            'content': content,
-            'date': datetime.datetime.now(),
-        }, refresh=True)
-
 def query_alchemy(url):
     """ Ask alchemy. Store alchemy results in a separate doc_type. """    
     response = alchemy_call('URLGetCategory', {'url':url} )
-    print(response)
     category = response.get('category', [])
 
     response = alchemy_call('URLGetLanguage', {'url':url} )
-    print(response)
     language = response.get('language', [])
 
     response = alchemy_call('URLGetRankedNamedEntities', {'url':url} )
-    print(response)
     entities = response.get('entities', [])
 
     # some finer grained entities
@@ -98,7 +64,6 @@ def query_alchemy(url):
 
     # extract full text text
     response = alchemy_call('URLGetRawText', {'url':url} )
-    print(response)
     text = response.get('text', '')
 
     if text:
