@@ -9,6 +9,9 @@ and organize your bookmarks into smart folders.
 
 This project is part of the [HackZurich14](http://hackzurich.com)
 
+* https://www.hackerleague.org/hackathons/hackzurich-2014/hacks/beek-dot-it
+* https://www.youtube.com/watch?v=TuB6y8oQPmI
+
 beek server
 -----------
 
