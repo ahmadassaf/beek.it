@@ -21,7 +21,7 @@ def human_category(s):
     """ 2014-10-11T08:53:18.392370 """
     cats = {
         'culture_politics': 'Culture/Politics',
-        'recreation': 'Recreation', 
+        'recreation': 'Recreation',
         'computer_internet': 'Computer/Internet',
         'science_technology': 'Science/Technology',
         'arts_entertainment': 'Arts/Entertainment',
@@ -29,12 +29,10 @@ def human_category(s):
     }
     return cats.get(s, s)
 
-
 @app.template_filter('human_time')
 def human_time(s):
     """ 2014-10-11T08:53:18.392370 """
     return pretty_date(dateutil.parser.parse(s))
-
 
 @app.route('/hello')
 def root():
@@ -50,7 +48,6 @@ def bookmarked():
             "query" : query}, size=100)
     return jsonify({'bookmarked': result['hits']['total']!=0})
 
-
 @app.route("/terms")
 def terms():
     es = elasticsearch.Elasticsearch()
@@ -63,7 +60,7 @@ def terms():
     cats = set()
     for row in data:
         cat = row['_source'].get('category', None)
-        if cat: 
+        if cat:
             cats.add(cat)
 
     return jsonify({'cities':cities, 'people':people, 'categories':list(cats)})
@@ -77,13 +74,21 @@ def images():
         return jsonify(msg=str(err))
     return jsonify(**result)
 
+@app.route("/groups")
+def groups():
+    es = elasticsearch.Elasticsearch()
+    try:
+        result = es.get_source(index='beek', doc_type='groups', id='dbpedia')
+    except Exception as err:
+        return jsonify(msg=str(err))
+    return jsonify(**result)
 
 def filter_type_from_results(ent_type, results):
     terms = dict()
     for result in results:
         print result['_source'].keys()
         for entity in result['_source'].get('entities',[]):
-            
+
             if entity['type'] == ent_type and entity.get('disambiguated'):
                     disam = entity['disambiguated']
                     terms[ disam['name'] ] = disam.get('dbpedia', '')
@@ -117,14 +122,13 @@ def home():
 
     people = filter_type_from_results('Person', result['hits']['hits'])
 
-    return render_template('home.html', hits=result['hits'], people=people)    
+    return render_template('home.html', hits=result['hits'], people=people)
     # return "<pre>%s</pre>" % (hits)
-
 
 @app.route("/query")
 def query():
     q = request.args.get('q')
-    
+
     es = elasticsearch.Elasticsearch()
     query = {'query_string': {'query': '%s' % q}}
     result = es.search(index='beek', doc_type='page', body={
@@ -138,7 +142,7 @@ def query():
         row = row_raw['_source']
         print row.keys()
         import re
-        m = re.search('<title>(.*)</title>', row['content'])  
+        m = re.search('<title>(.*)</title>', row['content'])
         if not m:
             continue
         title = m.group(1)
@@ -166,7 +170,6 @@ def query():
                 person = entity.get('disambiguated')
                 people.append(person)
 
-
         output.append(
             {
             'url': row['url'],
@@ -183,14 +186,12 @@ def query():
     print output
     return jsonify({'out':output})
 
-
 @app.route("/api/remove")
 def remove_url():
     if request.args.get('id'):
         es = elasticsearch.Elasticsearch()
         es.delete(index='beek', doc_type='page', id=request.args.get('id'))
     return redirect(url_for('home'))
-
 
 @app.route("/api/add")
 def add_url():
@@ -209,6 +210,10 @@ def add_url():
     wordcount_job = q.enqueue(count_words, url_to_doc_id(url), depends_on=embedly_job)
     # Terms images service
     termimages_job = q.enqueue(get_terms_images, depends_on=wordcount_job)
+    # Calculate some readability measures
+    readability_job = q.enqueue(calculate_readability_measures, url_to_doc_id(url), depends_on=termimages_job)
+    # group people
+    group_people_job = q.enqueue(group_people, depends_on=readability_job)
 
     # return jsonify(msg="ok enqueued")
     return redirect(url_for('home'))

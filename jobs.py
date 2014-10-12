@@ -12,6 +12,8 @@ import embedly
 import json
 import os
 import requests
+import collections
+from textstat.textstat import textstat
 
 def index(url):
     """ Index a URL into elasticsearch. """
@@ -31,6 +33,63 @@ def count_words(id):
     es.update(index='beek', doc_type='page', id=id,
               body={'doc': {'count': count}}, refresh=True)
 
+def calculate_readability_measures(id):
+    """ Count the words in doc and update the document. """
+    es = elasticsearch.Elasticsearch()
+    source = es.get_source(index='beek', doc_type='page', id=id)
+    # count = len(source['content'].split())
+    try:
+        measures = {
+            'flesch': textstat.flesch_reading_ease(source['content']),
+            'smog': textstat.smog_index(source['content']),
+            'flesch_kincaid': textstat.flesch_kincaid_grade(source['content']),
+            'coleman_liau': textstat.coleman_liau_index(source['content']),
+            'readability': textstat.automated_readability_index(source['content']),
+            'dale_chall': textstat.dale_chall_readability_score(source['content']),
+            'difficult_words': textstat.difficult_words(source['content']),
+            'linsear_write_formula': textstat.linsear_write_formula(source['content']),
+            'gunning_fog': textstat.gunning_fog(source['content']),
+            'consensus': textstat.readability_consensus(source['content']),
+        }
+
+        es.update(index='beek', doc_type='page', id=id,
+                  body={'doc': {'measures': measures}}, refresh=True)
+    except Exception as err:
+        pass
+
+def group_people():
+    """ Use crude wikipedia categories to group people.
+
+    SELECT DISTINCT ?category WHERE
+    { <http://dbpedia.org/resource/Neymar> dcterms:subject ?category} LIMIT 100 OFFSET 0
+
+    """
+    r = requests.get('http://localhost:5000/terms')
+    if r.status_code >= 400:
+        raise RuntimeError('we need /terms')
+    terms = json.loads(r.text)
+
+    # store everything we find here
+    groups = {'cities': collections.defaultdict(list), 'people': collections.defaultdict(list)}
+
+    for kind in ('cities', 'people'):
+        for name, url in terms[kind].iteritems():
+            dbpedia_live_url = '%s.json' % url.replace('dbpedia.org/resource', 'live.dbpedia.org/data')
+            r = requests.get(dbpedia_live_url)
+            if r.status_code >= 400:
+                continue
+            bag = json.loads(r.text)
+            for subject, po in bag.iteritems():
+                for predicate, o in po.iteritems():
+                    if predicate == "http://purl.org/dc/terms/subject":
+                        for doc in o:
+                            print(name, url, doc['value'])
+                            if not name in groups[kind][doc['value']]:
+                                groups[kind][doc['value']].append(name)
+
+    # save results as single document
+    es = elasticsearch.Elasticsearch()
+    es.index(index='beek', doc_type='groups', id='dbpedia', body=groups, refresh=True)
 
 def alchemy_call(service, params):
     """ Helper for alchemy_flow. """
@@ -42,7 +101,7 @@ def alchemy_call(service, params):
     return json.loads(r.text)
 
 def query_alchemy(url):
-    """ Ask alchemy. Store alchemy results in a separate doc_type. """    
+    """ Ask alchemy. Store alchemy results in a separate doc_type. """
     response = alchemy_call('URLGetCategory', {'url':url} )
     category = response.get('category', [])
 
@@ -92,11 +151,9 @@ def query_embedly(url):
     client = embedly.Embedly(os.environ['EMBEDLY_API_KEY'])
     #if client.is_supported(url):
     resp = client.oembed(url)
-    data = resp.__dict__        
+    data = resp.__dict__
     es = elasticsearch.Elasticsearch()
     es.update(index='beek', doc_type='page', id=url_to_doc_id(url), body={'doc': {'embedly': data}})
-
-
 
 def get_terms_images():
     """ Try to fetch the depictions of terms from dbpedia and cache the
