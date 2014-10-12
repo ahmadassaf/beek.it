@@ -74,10 +74,25 @@
         .reset {
             float:none;
         }
+        #add-to-firefox-button {
+          position: absolute;
+          top: 15px;
+          right: 20px;
+          width: 60px;
+          cursor: pointer;
+        }
+        #add-to-chrome-button {
+          position: absolute;
+          top: 85px;
+          right: 20px;
+          width: 60px;
+          cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <button onclick="activate(this)" title="Add beek.it to Firefox">Add beek.it to Firefox</button>
+    <img id="add-to-firefox-button" onclick="activate(this)" src="{{ url_for('static', filename='img/add_to_firefox.png') }}" alt="Add beek.it to Firefox"/>
+    <a rel="chrome-webstore-item" href="https://chrome.google.com/webstore/detail/itemID" target="_blank"><img id="add-to-chrome-button" src="{{ url_for('static', filename='img/add_to_chrome.png') }}" alt="Add beek.it to Chrome"/></link>
     <div class="row" id="q-input">
       <div class="small-12 large-12 columns">
           <form>
