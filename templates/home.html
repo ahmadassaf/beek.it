@@ -74,7 +74,6 @@
         .reset {
             float:none;
         }
-<<<<<<< HEAD
         #add-to-firefox-button {
           position: absolute;
           top: 15px;
@@ -88,16 +87,15 @@
           right: 20px;
           width: 60px;
           cursor: pointer;
-=======
+        }
         .snippet {
             font-size: 0.8em;
->>>>>>> FETCH_HEAD
         }
     </style>
 </head>
 <body>
     <img id="add-to-firefox-button" onclick="activate(this)" src="{{ url_for('static', filename='img/add_to_firefox.png') }}" alt="Add beek.it to Firefox"/>
-    <a rel="chrome-webstore-item" href="https://chrome.google.com/webstore/detail/itemID" target="_blank"><img id="add-to-chrome-button" src="{{ url_for('static', filename='img/add_to_chrome.png') }}" alt="Add beek.it to Chrome"/></link>
+    <a rel="chrome-webstore-item" href="https://chrome.google.com/webstore/detail/itemID" target="_blank"><img id="add-to-chrome-button" src="{{ url_for('static', filename='img/add_to_chrome.png') }}" alt="Add beek.it to Chrome"/></a>
     <div class="row" id="q-input">
       <div class="small-12 large-12 columns">
           <form>
@@ -175,7 +173,7 @@
                                             <a href="{{ hit._source.embedly.data.url }}"><img width="120px" src="{{ hit._source.embedly.data.thumbnail_url }}"></a>
                                         {% endif %}
                                     </img></div>
-                                {% endif %}                                
+                                {% endif %}
                             </div>
                             <div class="small-10 large-10 columns">
                                                         <li>
@@ -210,10 +208,7 @@
                                     <a href="{{ url_for('home', q='category:%s' % hit._source.category) }}">{{ hit._source.category|human_category }}</a>
                                     <br>
                             {% endif %}
-<<<<<<< HEAD
-=======
-                            <hr class="reset">
->>>>>>> FETCH_HEAD
+                            <hr class="reset"/>
                             </div>
                         </li>
 
