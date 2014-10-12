@@ -225,6 +225,17 @@ def remove_url():
         es.delete(index='beek', doc_type='page', id=request.args.get('id'))
     return redirect(url_for('home'))
 
+@app.route("/api/remove_url")
+def remove_url_by_url():
+    if request.args.get('url'):
+        es = elasticsearch.Elasticsearch()
+        try:
+            es.delete(index='beek', doc_type='page', id=url_to_doc_id(request.args.get('url')))
+        except Exception as err:
+            print(err)
+            pass
+    return redirect(url_for('home'))
+
 
 @app.route("/api/add")
 def add_url():
