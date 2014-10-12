@@ -13,6 +13,7 @@ import datetime
 import dateutil.parser
 import elasticsearch
 import time
+import our_evernote
 
 app = Flask(__name__)
 
@@ -32,7 +33,11 @@ def human_category(s):
 @app.template_filter('human_time')
 def human_time(s):
     """ 2014-10-11T08:53:18.392370 """
-    return pretty_date(dateutil.parser.parse(s))
+    try:
+        return pretty_date(dateutil.parser.parse(s))
+    except Exception as err:
+        print(err)
+    return s
 
 @app.route('/hello')
 def root():
@@ -48,8 +53,15 @@ def bookmarked():
             "query" : query}, size=100)
     return jsonify({'bookmarked': result['hits']['total']!=0})
 
+<<<<<<< HEAD
 @app.route("/terms")
 def terms():
+=======
+def filter_keywords(keywords):
+    return [ keyword for keyword in keywords if keyword > str(0.95)]
+
+def get_terms():
+>>>>>>> 77e0288a225a154709ef409ba8590d0b5a6e560b
     es = elasticsearch.Elasticsearch()
     result = es.search(index='beek', body={
             "query" : { "match_all" : {}}}, size=100)
@@ -57,13 +69,23 @@ def terms():
     cities = filter_type_from_results('City', data)
     people = filter_type_from_results('Person', data)
 
+    keywords = set()
     cats = set()
     for row in data:
         cat = row['_source'].get('category', None)
         if cat:
             cats.add(cat)
+        for key in row['_source'].get('keywords', []):
+            keywords.add(key['text'])
 
-    return jsonify({'cities':cities, 'people':people, 'categories':list(cats)})
+    keywords = filter_keywords(keywords)
+
+    return cities, people, list(cats), keywords
+
+@app.route("/terms")
+def terms():
+    cities, people, cats, keywords = get_terms()
+    return jsonify({'cities':cities, 'people':people, 'categories':cats, 'keywords':keywords})
 
 @app.route("/images")
 def images():
@@ -94,6 +116,20 @@ def filter_type_from_results(ent_type, results):
                     terms[ disam['name'] ] = disam.get('dbpedia', '')
     return terms
 
+
+@app.route("/related")
+def related():
+    url = request.args.get('url')
+    if not url:
+        return jsonify(msg='url parameter required')
+
+    es = elasticsearch.Elasticsearch()
+    result = es.search(index='beek', doc_type='page', body={'query':
+               {'query_string': {'query': 'url:"%s"' % url}}})
+    hits = result['hits']['hits']
+    return jsonify(related=hits)
+
+
 @app.route("/")
 def home():
     q = request.args.get('q')
@@ -107,18 +143,22 @@ def home():
     if not q:
         # get some stats
         es = elasticsearch.Elasticsearch()
-        total = es.count(index='beek', body={'query': {'match_all': {}}}).get('count')
+        total = es.count(index='beek', doc_type='page', body={'query': {'match_all': {}}}).get('count')
         result = es.search(index='beek', body={
             "query" : { "match_all" : {}}}, size=5)
 
-        return render_template('home.html', docs=result['hits'], total=total)
+        cities, people, cats, _ = get_terms()
+        images = es.get_source(index='beek', doc_type='images', id='dbpedia')
+        return render_template('home.html', docs=result['hits'], total=total,
+                       cities=cities, people=people, cats=cats,
+                       images=images)
 
     es = elasticsearch.Elasticsearch()
     query = {'query_string': {'query': '%s' % q}}
     result = es.search(index='beek', doc_type='page', body={
         'query': query,
         'highlight': {'fields': {'text':
-            {"fragment_size" : 90, "number_of_fragments" : 1}}}})
+            {"fragment_size" : 250, "number_of_fragments" : 3}}}})
 
     people = filter_type_from_results('Person', result['hits']['hits'])
 
@@ -191,11 +231,29 @@ def remove_url():
         es.delete(index='beek', doc_type='page', id=request.args.get('id'))
     return redirect(url_for('home'))
 
+@app.route("/api/remove_url")
+def remove_url_by_url():
+    if request.args.get('url'):
+        es = elasticsearch.Elasticsearch()
+        try:
+            es.delete(index='beek', doc_type='page', id=url_to_doc_id(request.args.get('url')))
+        except Exception as err:
+            print(err)
+            pass
+    return redirect(url_for('home'))
+
 @app.route("/api/add")
 def add_url():
     url = request.args.get('url')
     if not url:
         return jsonify(msg='no url supplied'), 400
+
+    es = elasticsearch.Elasticsearch()
+    try:
+        result = es.get(index='beek', doc_type='page', id=url_to_doc_id(request.args.get('url')))
+        return redirect(url_for('home'))
+    except Exception as err:
+        pass
 
     q = Queue(connection=Redis())
     # First, index the page
@@ -246,8 +304,20 @@ def search():
     es = elasticsearch.Elasticsearch()
     result = es.search(index='beek', doc_type='page', body={
         'query': {'query_string': {'query': '%s' % " AND ".join(parts)}},
-        'highlight': {'fields': {'text': {"fragment_size" : 90, "number_of_fragments" : 1}}}})
+        'highlight': {'fields': {'text': {"fragment_size" : 300, "number_of_fragments" : 1}}}})
     return render_template('home.html', hits=result['hits'])
+
+@app.route("/api/load_from_evernote")
+def load_from_evernote():
+    token = request.args.get('token')
+    token = 'S=s1:U=8fa64:E=1505674a78d:C=148fec37b28:P=1cd:A=en-devtoken:V=2:H=557207e871d827a672dd55ffdb6b0a11'
+    q = Queue(connection=Redis())
+    # First, index the page
+    index_job = q.enqueue(process_evernote, '__token__')
+
+    return jsonify({'ok': True})
+
+
 
 if __name__ == "__main__":
     import sys
