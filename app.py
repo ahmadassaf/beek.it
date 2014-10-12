@@ -243,6 +243,13 @@ def add_url():
     if not url:
         return jsonify(msg='no url supplied'), 400
 
+    es = elasticsearch.Elasticsearch()
+    try:
+        result = es.get(index='beek', doc_type='page', id=url_to_doc_id(request.args.get('url')))
+        return redirect(url_for('home'))
+    except Exception as err:
+        pass
+
     q = Queue(connection=Redis())
     # First, index the page
     index_job = q.enqueue(index, url)
@@ -304,4 +311,8 @@ def load_from_evernote():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=True)
+    import sys
+    if len(sys.argv) > 1:
+        app.run(host='0.0.0.0', port=int(sys.argv[1]), debug=True)
+    else:
+        app.run(host='0.0.0.0', debug=True)
