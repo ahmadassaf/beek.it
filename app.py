@@ -136,7 +136,6 @@ def query():
 
     for row_raw in result:
         row = row_raw['_source']
-        print row.keys()
         import re
         m = re.search('<title>(.*)</title>', row['content'])  
         if not m:
@@ -180,7 +179,6 @@ def query():
             'people': people
             }
         )
-    print output
     return jsonify({'out':output})
 
 
@@ -247,4 +245,8 @@ def search():
     return render_template('home.html', hits=result['hits'])
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=True)
+    import sys
+    if len(sys.argv) > 1:
+        app.run(host='0.0.0.0', port=int(sys.argv[1]), debug=True)
+    else:
+        app.run(host='0.0.0.0', debug=True)
