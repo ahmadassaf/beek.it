@@ -41,15 +41,62 @@ def alchemy_call(service, params):
     r = requests.get(ALCHEMY_URL + service, params=params)
     return json.loads(r.text)
 
+def alchemy_call_data(service, params):
+    """ Helper for alchemy_flow. """
+    ALCHEMY_URL = "http://access.alchemyapi.com/calls/text/"
+
+    params['outputMode'] = 'json'
+    params['apikey'] = os.environ['ALCHEMY_API_KEY']
+    print params['apikey']
+    r = requests.get(ALCHEMY_URL + service, params=params)
+    print 'RRRR', r.__dict__
+    return json.loads(r.text)
+
+def process_evernote(token):
+    import our_evernote
+    from evernote.edam.notestore import NoteStore
+    import evernote.edam.type.ttypes as Types
+    token = 'S=s1:U=8fa64:E=1505674a78d:C=148fec37b28:P=1cd:A=en-devtoken:V=2:H=557207e871d827a672dd55ffdb6b0a11'
+    note_store, urls_and_contents = our_evernote.get_source_urls(token)
+    es = elasticsearch.Elasticsearch()
+
+
+    tags = dict( (tag.name, tag) for tag in note_store.listTags(token))
+
+    for url, note in urls_and_contents:
+        content = note.content
+        response = alchemy_call_data('TextGetCategory', {'text':content} )
+        print(response)
+        category = response.get('category', [])
+        tag = tags.get(category)
+        if not tag:
+            tag_data = Types.Tag(name=category)
+            tag = note_store.createTag(token, tag_data)
+
+        if tag.guid not in note.tagGuids:
+            note.tagGuids.append(tag.guid)
+            note_store.updateNote(token, note)
+
+        es.index(index='beek', doc_type='page', id=url_to_doc_id(url), body={
+            'url': url,
+            'category': category,
+            'text': content,
+            'content': content,
+            'date': datetime.datetime.now(),
+        }, refresh=True)
+
 def query_alchemy(url):
     """ Ask alchemy. Store alchemy results in a separate doc_type. """    
     response = alchemy_call('URLGetCategory', {'url':url} )
+    print(response)
     category = response.get('category', [])
 
     response = alchemy_call('URLGetLanguage', {'url':url} )
+    print(response)
     language = response.get('language', [])
 
     response = alchemy_call('URLGetRankedNamedEntities', {'url':url} )
+    print(response)
     entities = response.get('entities', [])
 
     # some finer grained entities
@@ -58,12 +105,10 @@ def query_alchemy(url):
     actors = [e['text'] for e in entities if e['type'] in ('Person', 'Organization', 'Company')]
     terminology = [e['text'] for e in entities if e['type'] in ('FieldTerminology')]
 
-    for e in entities:
-        if e['type'] not in ('City', 'Country', 'Person', 'Organization'):
-            print(e)
 
     # extract full text text
     response = alchemy_call('URLGetRawText', {'url':url} )
+
     text = response.get('text', '')
 
     if text:
@@ -120,7 +165,6 @@ def get_terms_images():
                 for predicate, o in po.iteritems():
                     if predicate == "http://xmlns.com/foaf/0.1/depiction":
                         for doc in o:
-                            print(name, url, doc['value'])
                             imagery[kind][name] = doc['value']
 
     # save results as single document
