@@ -1,4 +1,4 @@
-Please find the latest code at the [es-backend branch](https://github.com/ahmadassaf/beek.it/tree/es-backend).
+**Please find the latest code at the [es-backend branch](https://github.com/ahmadassaf/beek.it/tree/es-backend).**
 
 ----
 
