@@ -25,3 +25,5 @@ times==0.7
 urllib3==1.9.1
 vcrpy==1.1.0
 wsgiref==0.1.2
+evernote==1.25.0
+oauth2==1.5.211
