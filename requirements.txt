@@ -6,7 +6,7 @@ PyYAML==3.11
 Werkzeug==0.9.6
 arrow==0.4.4
 contextlib2==0.4.0
-elasticsearch==1.2.0
+elasticsearch==5.0.0
 futures==2.2.0
 httplib2==0.9
 itsdangerous==0.24

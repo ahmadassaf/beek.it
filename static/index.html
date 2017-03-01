@@ -9,35 +9,5 @@
   <script type='text/javascript' src='/static/js/jquery-1.11.1.min.js'></script>
   <script type='text/javascript' src='/static/js/jquery.particleground.min.js'></script>
   <script type='text/javascript' src='/static/js/demo.js'></script>
-  <script>
-    var loc = location.href;
-    var baseurl = loc.substring(0, loc.lastIndexOf('/'));
-
-    var data = {
-      // currently required
-      "name": "beek.it Service",
-      "iconURL": baseurl + "/beek.png",
-      "icon32URL": baseurl + "/beek.png",
-      "icon64URL": baseurl + "/beek.png",
-
-      "markURL": baseurl + "/marks.html?url=%{url}",
-      "markedIcon": baseurl + "/marked.png",
-      "unmarkedIcon": baseurl + "/unmarked.png",
-
-      // should be available for display purposes
-      "description": "Add pages to beek.it. Beek.it will orgranize it for you!",
-      "author": "beek.it",
-      "homepageURL": "http://beek.it",
-
-      // optional
-      "version": "1.0"
-    }
-
-    function activate(node) {
-      var event = new CustomEvent("ActivateSocialFeature");
-      node.setAttribute("data-service", JSON.stringify(data));
-      node.dispatchEvent(event);
-    }
-  </script>
 </head>
 </html>

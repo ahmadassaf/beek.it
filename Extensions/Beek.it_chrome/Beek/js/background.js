@@ -1,1 +1,0 @@
-console.log("====== Beek Background is in Action !!! =======");

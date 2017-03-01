@@ -1,76 +1,94 @@
-beek.it
-=======
+# beek.it
 
-A smarter semantic bookmarking system
+> A smarter semantic bookmarking system
 
-This project aims at tackling the on-going problem of organizing pages that you access and
-read on daily basis. We aim at integrating several techniques to automatically classify
-and organize your bookmarks into smart folders.
+This project aims at tackling the on-going problem of organizing pages that you access and read on daily basis. We aim at integrating several techniques to automatically classify and organize your bookmarks into smart folders.
 
-This project is part of the [HackZurich14](http://hackzurich.com)
+This project is part of the [HackZurich14](http://hackzurich.com) | [Watch video](https://www.youtube.com/watch?v=TuB6y8oQPmI)
 
-* https://www.hackerleague.org/hackathons/hackzurich-2014/hacks/beek-dot-it
-* https://www.youtube.com/watch?v=TuB6y8oQPmI
+## Setting up
 
-beek server
------------
+The beek.it consists of An elasticsearch server serves as a backend with an API/webapp wrapper around it, that exposes various information. General requirements are:
 
-An elasticsearch server serves as a backend with an API/webapp wrapper around it,
-that exposes various information.
+ - [ElasticSearch (v5.x)](https://www.elastic.co/products/elasticsearch): a distributed, RESTful search and analytics engine capable of solving a growing number of use cases
+ - [redis v3.x](https://redis.io): in-memory data structure store, used as a database, cache and message broker
+ - [rqworker](http://python-rq.org): a simple Python library for queueing jobs and processing them in the background with workers
 
-Check if a page is already bookmarked (return true or false):
+### Starting up:
 
-    $ curl http://localhost:5000/bookmarked?url=http://www.heise.de
-    {
-        "bookmarked": true
-    }
+ 1. Make sure that all python dependencies are install with `pip install -r requirements.txt`
+ 2. Starting up the server requires that an ElasticSearch and redis instance are running, then an `rqworker` worker is running as well using the `rqworker` command
 
-List all terms (categories, cities, people) of all saved bookmarks:
+### Server Methods
 
-    $ curl http://localhost:5000/terms
-    {
-      "categories": [
-        "recreation",
-        "business",
-        "computer_internet",
-        "culture_politics",
-        "arts_entertainment"
-      ],
-      "cities": {
-        "Amphipolis": "http://dbpedia.org/resource/Amphipolis",
-        "Anbar (town)": "http://dbpedia.org/resource/Anbar_(town)",
-        ...
-      },
-      "people": {
-        "Adam Ashley-Cooper": "http://dbpedia.org/resource/Adam_Ashley-Cooper",
-        ...
-      }
-    }
+#### Check if a page is already bookmarked (return true or false):
 
-List imagery from wikipedia, which is made available via dbpedia, shared
-into cities and people:
+```bash
+$ curl http://localhost:5000/bookmarked?url=http://www.heise.de
+```
+```javascript
+{
+    "bookmarked": true
+}
+```
 
-    $ curl http://localhost:5000/images
-    {
-      "cities": {
-        "Amphipolis": "http://commons.wikimedia.org/wiki/Special:FilePath/2011_Dimos_Amfipolis.png",
-        ...
-      },
-      "people": {
-        "Barack Obama": "http://commons.wikimedia.org/wiki/Special:FilePath/President_Barack_Obama.jpg",
-        ...
-      },
-    }
+#### List all terms (categories, cities, people) of all saved bookmarks:
 
-Add a new bookmark:
+```bash
+$ curl http://localhost:5000/terms
+```
+```javascript
+{
+  "categories": [
+    "recreation",
+    "business",
+    "computer_internet",
+    "culture_politics",
+    "arts_entertainment"
+  ],
+  "cities": {
+    "Amphipolis": "http://dbpedia.org/resource/Amphipolis",
+    "Anbar (town)": "http://dbpedia.org/resource/Anbar_(town)",
+    ...
+  },
+  "people": {
+    "Adam Ashley-Cooper": "http://dbpedia.org/resource/Adam_Ashley-Cooper",
+    ...
+  }
+}
+```
 
-    $ curl http://localhost:5000/api/add?url=http://www.bbc.com/autos/story/20141008-is-this-the-best-porsche-911
+#### List imagery from wikipedia, which is made available via dbpedia, shared into cities and people:
 
-Remove a bookmark via ID, which is the SHA1 of the URL:
+```bash
+$ curl http://localhost:5000/images
+```
+```javascript
 
-    $ curl http://localhost:5000/api/remove?id=00118581fcb1fa384d30b76a7fa2a6a72025e859
+{
+  "cities": {
+    "Amphipolis": "http://commons.wikimedia.org/wiki/Special:FilePath/2011_Dimos_Amfipolis.png",
+    ...
+  },
+  "people": {
+    "Barack Obama": "http://commons.wikimedia.org/wiki/Special:FilePath/President_Barack_Obama.jpg",
+    ...
+  },
+}
+```
 
-----
 
-Home (`/`) and `api/search` are user facing interfaces.
+#### Add a new bookmark:
+
+```bash
+$ curl http://localhost:5000/api/add?url=http://www.bbc.com/autos/story/20141008-is-this-the-best-porsche-911
+```
+
+#### Remove a bookmark via ID, which is the SHA1 of the URL:
+
+```bash
+$ curl http://localhost:5000/api/remove?id=00118581fcb1fa384d30b76a7fa2a6a72025e859
+```
+
+> Home (`/`) and `api/search` are user facing interfaces.
 
