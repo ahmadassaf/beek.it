@@ -22,7 +22,7 @@ rq-dashboard==0.3.4
 simplejson==3.6.4
 six==1.8.0
 times==0.7
-urllib3==1.9.1
+urllib3==1.26.5
 vcrpy==1.1.0
 wsgiref==0.1.2
 evernote==1.25.0
